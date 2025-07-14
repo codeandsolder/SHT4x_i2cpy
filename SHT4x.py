@@ -6,7 +6,7 @@ __author__ = "Thorsten Schnebeck"
 __date__ = "2023-05-29"
 
 
-from smbus2 import SMBus, i2c_msg
+from i2cpy import I2C
 import time
 
 
@@ -33,10 +33,9 @@ class SHT4x:
     CMD_SOFT_RESET = 0x94
     CMD_READ_SERIAL_NUMBER = 0x89
 
-    def __init__(self, bus=1, address=ADDRESS, mode="high"):
-        self._i2c_bus = bus
+    def __init__(self, i2c=I2C(), address=ADDRESS, mode="high"):
         self._i2c_address = address
-        self._bus = SMBus(self._i2c_bus)
+        self._bus = i2c
         self._valid = False
         self._serial_number = "None"
         self._mode = 0
@@ -59,12 +58,10 @@ class SHT4x:
             return f"serial number: {self._serial_number} | no valid data!"
 
     def _write_command(self, command):
-        self._bus.write_byte(self._i2c_address, command)
+        self._bus.writeto(self._i2c_address, command)
 
     def _read_data_with_crc(self):
-        read = i2c_msg.read(self._i2c_address, 6)
-        self._bus.i2c_rdwr(read)
-        data = list(read)
+        data = list(self._bus.readfrom(self._i2c_address, 6))
         crc1 = SHT4x._calculate_crc8(data[0:2])
         crc2 = SHT4x._calculate_crc8(data[3:5])
         if crc1 == data[2] and crc2 == data[5]:
